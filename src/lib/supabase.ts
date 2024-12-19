@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://your-project-url.supabase.co';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = 'https://oxrirnfenscjtnoygrgx.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94cmlybmZlbnNjanRub3lncmd4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ2MDMzMzUsImV4cCI6MjA1MDE3OTMzNX0.OADCG9-juALDZrZWpgn5EgnX1aOP_FfN8DnmxyBiIWg';
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -11,6 +11,7 @@ export type Profile = {
   avatar_url?: string;
   bio?: string;
   notifications_enabled: boolean;
+  created_at: string;
 };
 
 export type Post = {
@@ -21,6 +22,7 @@ export type Post = {
   created_at: string;
   updated_at: string;
   image_url?: string;
+  published: boolean;
 };
 
 export type Comment = {
