@@ -1,10 +1,11 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { Link } from "react-router-dom";
 
 export const FeaturedPost = () => {
   return (
     <Card className="border-0 shadow-none">
       <CardContent className="p-0">
-        <a href="/post/1" className="group">
+        <Link to="/post/1" className="group">
           <div className="aspect-[16/9] overflow-hidden mb-4">
             <img
               src="https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"
@@ -26,7 +27,7 @@ export const FeaturedPost = () => {
               <span>5 min read</span>
             </div>
           </div>
-        </a>
+        </Link>
       </CardContent>
     </Card>
   );

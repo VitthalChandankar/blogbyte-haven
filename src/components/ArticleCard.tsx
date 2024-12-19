@@ -1,10 +1,11 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { Link } from "react-router-dom";
 
 export const ArticleCard = () => {
   return (
     <Card className="border-0 shadow-none">
       <CardContent className="p-0">
-        <a href="/post/1" className="flex space-x-4 group">
+        <Link to="/post/1" className="flex space-x-4 group">
           <div className="flex-1 space-y-2">
             <h3 className="font-serif font-bold group-hover:text-blue-600 transition-colors">
               Understanding Modern JavaScript: A Deep Dive
@@ -25,7 +26,7 @@ export const ArticleCard = () => {
               className="w-full h-full object-cover"
             />
           </div>
-        </a>
+        </Link>
       </CardContent>
     </Card>
   );
