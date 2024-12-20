@@ -8,6 +8,7 @@ const AuthCallback = () => {
   useEffect(() => {
     supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN") {
+        console.log("User signed in:", session?.user);
         navigate("/");
       }
     });
@@ -16,7 +17,7 @@ const AuthCallback = () => {
   return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
-        <h2 className="text-2xl font-semibold mb-4">Completing sign in...</h2>
+        <h2 className="text-2xl font-bold mb-4">Completing sign in...</h2>
         <p className="text-gray-600">Please wait while we redirect you.</p>
       </div>
     </div>
