@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Post from "./pages/Post";
 import Write from "./pages/Write";
 import SignIn from "./pages/SignIn";
+import AuthCallback from "./pages/AuthCallback";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ const App = () => (
             <Route path="/post/:id" element={<Post />} />
             <Route path="/write" element={<Write />} />
             <Route path="/signin" element={<SignIn />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
           </Routes>
         </BrowserRouter>
       </NotificationProvider>
