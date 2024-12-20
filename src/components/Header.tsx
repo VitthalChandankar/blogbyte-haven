@@ -1,4 +1,4 @@
-import { Search, Bell } from "lucide-react";
+import { Search, Bell, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
@@ -10,10 +10,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 export const Header = () => {
   const navigate = useNavigate();
   const { notifications, unreadCount, markAsRead } = useNotifications();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setIsLoggedIn(!!user);
+    };
+    
+    checkUser();
+  }, []);
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -83,13 +95,28 @@ export const Header = () => {
               )}
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button 
-            variant="ghost"
-            onClick={() => navigate("/signin")}
-          >
-            Sign In
-          </Button>
-          <Button onClick={() => navigate("/write")}>Write</Button>
+          
+          {isLoggedIn ? (
+            <>
+              <Button 
+                variant="ghost"
+                onClick={() => navigate("/profile")}
+              >
+                <User className="h-5 w-5" />
+              </Button>
+              <Button onClick={() => navigate("/write")}>Write</Button>
+            </>
+          ) : (
+            <>
+              <Button 
+                variant="ghost"
+                onClick={() => navigate("/signin")}
+              >
+                Sign In
+              </Button>
+              <Button onClick={() => navigate("/write")}>Write</Button>
+            </>
+          )}
         </div>
       </div>
     </header>
