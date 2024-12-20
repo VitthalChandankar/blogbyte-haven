@@ -2,16 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
-import { Loader2 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 const SignIn = () => {
   const [email, setEmail] = useState("");
@@ -36,12 +28,13 @@ const SignIn = () => {
         title: "Welcome back!",
         description: "You have successfully signed in.",
       });
-      
+
       navigate("/");
-    } catch (error: any) {
+    } catch (error) {
+      console.error("Error signing in:", error);
       toast({
-        title: "Error",
-        description: error.message,
+        title: "Error signing in",
+        description: error instanceof Error ? error.message : "Please try again",
         variant: "destructive",
       });
     } finally {
@@ -52,24 +45,24 @@ const SignIn = () => {
   const handleGoogleSignIn = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+        provider: "google",
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
       if (error) throw error;
-    } catch (error: any) {
+    } catch (error) {
+      console.error("Error signing in with Google:", error);
       toast({
-        title: "Error",
-        description: error.message,
+        title: "Error signing in",
+        description: error instanceof Error ? error.message : "Please try again",
         variant: "destructive",
       });
     }
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSignUp = async () => {
     setLoading(true);
     
     try {
@@ -85,12 +78,13 @@ const SignIn = () => {
 
       toast({
         title: "Check your email",
-        description: "We sent you a confirmation link.",
+        description: "We've sent you a verification link to complete your registration.",
       });
-    } catch (error: any) {
+    } catch (error) {
+      console.error("Error signing up:", error);
       toast({
-        title: "Error",
-        description: error.message,
+        title: "Error signing up",
+        description: error instanceof Error ? error.message : "Please try again",
         variant: "destructive",
       });
     } finally {
@@ -100,63 +94,63 @@ const SignIn = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-center text-2xl font-serif">
-            Sign in to PracticeByte
-          </CardTitle>
-          <CardDescription className="text-center">
-            Continue your writing journey
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleEmailSignIn} className="space-y-6">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Sign in to your account
+          </h2>
+        </div>
+        <form className="mt-8 space-y-6" onSubmit={handleEmailSignIn}>
+          <div className="rounded-md shadow-sm space-y-4">
             <div>
               <Input
                 type="email"
+                required
                 placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required
               />
             </div>
             <div>
               <Input
                 type="password"
+                required
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
               />
             </div>
-            <div className="space-y-4">
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "Sign in"
-                )}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={handleGoogleSignIn}
-              >
-                Continue with Google
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full"
-                onClick={handleSignUp}
-              >
-                Create an account
-              </Button>
+          </div>
+
+          <div className="flex flex-col space-y-4">
+            <Button type="submit" disabled={loading}>
+              {loading ? "Loading..." : "Sign in"}
+            </Button>
+            
+            <Button type="button" variant="outline" onClick={handleSignUp} disabled={loading}>
+              Sign up
+            </Button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-gray-50 text-gray-500">Or continue with</span>
+              </div>
             </div>
-          </form>
-        </CardContent>
-      </Card>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleGoogleSignIn}
+              disabled={loading}
+            >
+              Sign in with Google
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
