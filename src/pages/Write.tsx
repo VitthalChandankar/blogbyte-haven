@@ -3,9 +3,10 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Bold, Italic, Image, Type, List, Link } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 const Write = () => {
   const [title, setTitle] = useState("");
@@ -13,17 +14,50 @@ const Write = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Publishing post:", { title, content });
-    
-    toast({
-      title: "Post published!",
-      description: "Your article has been published successfully.",
-    });
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to publish a post.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    // Simulate redirect to the new post
-    navigate("/post/1");
+      const { data: post, error } = await supabase
+        .from('posts')
+        .insert([
+          {
+            title,
+            content,
+            author_id: user.user.id,
+            published: true
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log("Post created:", post);
+      
+      toast({
+        title: "Post published!",
+        description: "Your article has been published successfully.",
+      });
+
+      navigate(`/post/${post.id}`);
+    } catch (error) {
+      console.error("Error publishing post:", error);
+      toast({
+        title: "Error",
+        description: "Failed to publish post. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleToolClick = (tool: string) => {

@@ -4,39 +4,98 @@ import { Comment } from "@/components/Comment";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
 
 const Post = () => {
   const { id } = useParams();
   const [newComment, setNewComment] = useState("");
   const { toast } = useToast();
-  console.log("Rendering post with ID:", id);
 
-  // Mock comments data
-  const comments = [
-    {
-      id: "1",
-      content: "Great article! Very informative.",
-      author: "Jane Smith",
-      replies: [
-        {
-          id: "2",
-          content: "Thanks for the feedback!",
-          author: "John Doe",
-          replies: [],
-        },
-      ],
-    },
-  ];
+  const { data: post, isLoading: postLoading } = useQuery({
+    queryKey: ['post', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('posts')
+        .select(`
+          *,
+          profiles:author_id (username, avatar_url)
+        `)
+        .eq('id', id)
+        .single();
 
-  const handleAddComment = () => {
-    console.log("Adding new comment:", newComment);
-    toast({
-      title: "Comment added",
-      description: "Your comment has been added successfully.",
-    });
-    setNewComment("");
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const { data: comments, isLoading: commentsLoading } = useQuery({
+    queryKey: ['comments', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('comments')
+        .select(`
+          *,
+          profiles:author_id (username, avatar_url)
+        `)
+        .eq('post_id', id)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const handleAddComment = async () => {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to comment.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('comments')
+        .insert([
+          {
+            content: newComment,
+            post_id: id,
+            author_id: user.user.id
+          }
+        ]);
+
+      if (error) throw error;
+
+      console.log("Comment added to post:", id);
+      
+      toast({
+        title: "Comment added",
+        description: "Your comment has been added successfully.",
+      });
+      
+      setNewComment("");
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add comment. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
+
+  if (postLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!post) {
+    return <div>Post not found</div>;
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -45,50 +104,34 @@ const Post = () => {
         <article className="max-w-3xl mx-auto">
           <header className="mb-8">
             <h1 className="text-4xl font-serif font-bold mb-4">
-              Understanding Modern JavaScript: A Deep Dive
+              {post.title}
             </h1>
             <div className="flex items-center space-x-4 text-gray-600">
               <div className="flex items-center space-x-2">
                 <img
-                  src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e"
+                  src={post.profiles?.avatar_url || "https://via.placeholder.com/40"}
                   alt="Author"
                   className="w-10 h-10 rounded-full"
                 />
-                <span>Jane Smith</span>
+                <span>{post.profiles?.username || "Anonymous"}</span>
               </div>
               <span>•</span>
               <span>3 min read</span>
               <span>•</span>
-              <span>Mar 15, 2024</span>
+              <span>{new Date(post.created_at).toLocaleDateString()}</span>
             </div>
           </header>
           
-          <img
-            src="https://images.unsplash.com/photo-1498050108023-c5249f4df085"
-            alt="Article hero"
-            className="w-full aspect-[2/1] object-cover mb-8 rounded-lg"
-          />
+          {post.image_url && (
+            <img
+              src={post.image_url}
+              alt="Article hero"
+              className="w-full aspect-[2/1] object-cover mb-8 rounded-lg"
+            />
+          )}
           
           <div className="prose prose-lg max-w-none">
-            <p>
-              JavaScript has evolved significantly since its inception. Modern JavaScript
-              brings powerful features that make development more efficient and enjoyable.
-              Let's explore some of these features and best practices.
-            </p>
-            
-            <h2>Modern Features</h2>
-            <p>
-              ES6+ introduced many game-changing features like arrow functions,
-              destructuring, and async/await. These features have revolutionized how we
-              write JavaScript code.
-            </p>
-            
-            <h2>Best Practices</h2>
-            <p>
-              Following best practices ensures your code is maintainable, performant,
-              and easy to understand. Some key practices include using meaningful
-              variable names, writing pure functions, and proper error handling.
-            </p>
+            {post.content}
           </div>
 
           {/* Comments section */}
@@ -106,8 +149,19 @@ const Post = () => {
             </div>
 
             <div className="space-y-6">
-              {comments.map((comment) => (
-                <Comment key={comment.id} comment={comment} />
+              {commentsLoading ? (
+                <div>Loading comments...</div>
+              ) : comments?.map((comment) => (
+                <Comment 
+                  key={comment.id} 
+                  comment={{
+                    id: comment.id,
+                    content: comment.content,
+                    author: comment.profiles?.username || "Anonymous",
+                    replies: []
+                  }}
+                  postId={id || ""}
+                />
               ))}
             </div>
           </div>

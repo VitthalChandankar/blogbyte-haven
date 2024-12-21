@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { MessageCircle } from "lucide-react";
-import { useToast } from "./ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase";
 
 interface CommentProps {
   comment: {
@@ -11,22 +12,57 @@ interface CommentProps {
     author: string;
     replies: CommentProps["comment"][];
   };
+  postId: string;
   level?: number;
 }
 
-export const Comment = ({ comment, level = 0 }: CommentProps) => {
+export const Comment = ({ comment, postId, level = 0 }: CommentProps) => {
   const [isReplying, setIsReplying] = useState(false);
   const [replyContent, setReplyContent] = useState("");
   const { toast } = useToast();
 
-  const handleReply = () => {
-    console.log("Replying to comment:", comment.id, "with content:", replyContent);
-    toast({
-      title: "Reply added",
-      description: "Your reply has been added successfully.",
-    });
-    setIsReplying(false);
-    setReplyContent("");
+  const handleReply = async () => {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to comment.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('comments')
+        .insert([
+          {
+            content: replyContent,
+            post_id: postId,
+            author_id: user.user.id,
+            parent_id: comment.id
+          }
+        ]);
+
+      if (error) throw error;
+
+      console.log("Reply added to comment:", comment.id);
+      
+      toast({
+        title: "Reply added",
+        description: "Your reply has been added successfully.",
+      });
+      
+      setIsReplying(false);
+      setReplyContent("");
+    } catch (error) {
+      console.error("Error adding reply:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add reply. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -60,7 +96,7 @@ export const Comment = ({ comment, level = 0 }: CommentProps) => {
       )}
 
       {comment.replies?.map((reply) => (
-        <Comment key={reply.id} comment={reply} level={level + 1} />
+        <Comment key={reply.id} comment={reply} postId={postId} level={level + 1} />
       ))}
     </div>
   );
