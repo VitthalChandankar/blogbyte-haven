@@ -33,7 +33,7 @@ const Profile = () => {
       const { data: existingProfile, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('user_id', userId)  // Changed to use user_id column
+        .eq('id', userId)  // Using 'id' to match Supabase's default column
         .single();
       
       if (fetchError) {
@@ -45,7 +45,7 @@ const Profile = () => {
             .from('profiles')
             .insert([
               {
-                user_id: userId,  // Changed to use user_id
+                id: userId,  // Using 'id' to match Supabase's default column
                 username: 'New User',
                 notifications_enabled: true,
               }

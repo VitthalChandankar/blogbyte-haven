@@ -6,7 +6,7 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 export type Profile = {
-  user_id: string;  // This will store the auth UUID
+  id: string;  // This matches Supabase's default auth user id column
   username: string;
   avatar_url?: string;
   bio?: string;
