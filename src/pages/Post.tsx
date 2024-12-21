@@ -16,16 +16,24 @@ const Post = () => {
   const { data: post, isLoading: postLoading } = useQuery({
     queryKey: ['post', id],
     queryFn: async () => {
+      console.log("Fetching post with ID:", id);
       const { data, error } = await supabase
         .from('posts')
         .select(`
           *,
-          profiles:author_id (username, avatar_url)
+          profiles (
+            username,
+            avatar_url
+          )
         `)
         .eq('id', id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching post:", error);
+        throw error;
+      }
+      console.log("Fetched post:", data);
       return data;
     }
   });
@@ -33,24 +41,32 @@ const Post = () => {
   const { data: comments, isLoading: commentsLoading } = useQuery({
     queryKey: ['comments', id],
     queryFn: async () => {
+      console.log("Fetching comments for post:", id);
       const { data, error } = await supabase
         .from('comments')
         .select(`
           *,
-          profiles:author_id (username, avatar_url)
+          profiles (
+            username,
+            avatar_url
+          )
         `)
         .eq('post_id', id)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching comments:", error);
+        throw error;
+      }
+      console.log("Fetched comments:", data);
       return data;
     }
   });
 
   const handleAddComment = async () => {
     try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
         toast({
           title: "Error",
           description: "You must be logged in to comment.",
@@ -65,7 +81,7 @@ const Post = () => {
           {
             content: newComment,
             post_id: id,
-            author_id: user.user.id
+            author_id: user.id
           }
         ]);
 
@@ -134,7 +150,6 @@ const Post = () => {
             {post.content}
           </div>
 
-          {/* Comments section */}
           <div className="mt-12 border-t pt-8">
             <h3 className="text-2xl font-serif font-bold mb-6">Comments</h3>
             
