@@ -1,17 +1,26 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
-import { Comment } from "@/components/Comment";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { PostHeader } from "@/components/post/PostHeader";
+import { PostContent } from "@/components/post/PostContent";
+import { CommentsSection } from "@/components/post/CommentsSection";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 
+const isValidUUID = (uuid: string) => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+};
+
 const Post = () => {
   const { id } = useParams();
-  const [newComment, setNewComment] = useState("");
-  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  // Validate UUID format
+  if (id && !isValidUUID(id)) {
+    console.error("Invalid UUID format:", id);
+    navigate("/");
+    return null;
+  }
 
   const { data: post, isLoading: postLoading } = useQuery({
     queryKey: ['post', id],
@@ -46,7 +55,8 @@ const Post = () => {
         ...post,
         author: author || { username: 'Anonymous' }
       };
-    }
+    },
+    enabled: !!id && isValidUUID(id)
   });
 
   const { data: comments, isLoading: commentsLoading } = useQuery({
@@ -86,50 +96,9 @@ const Post = () => {
       }
 
       return comments || [];
-    }
+    },
+    enabled: !!id && isValidUUID(id)
   });
-
-  const handleAddComment = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to comment.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const { error } = await supabase
-        .from('comments')
-        .insert([
-          {
-            content: newComment,
-            post_id: id,
-            author_id: user.id
-          }
-        ]);
-
-      if (error) throw error;
-
-      console.log("Comment added to post:", id);
-      
-      toast({
-        title: "Comment added",
-        description: "Your comment has been added successfully.",
-      });
-      
-      setNewComment("");
-    } catch (error) {
-      console.error("Error adding comment:", error);
-      toast({
-        title: "Error",
-        description: "Failed to add comment. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
 
   if (postLoading) {
     return <div>Loading...</div>;
@@ -144,68 +113,22 @@ const Post = () => {
       <Header />
       <main className="container mx-auto px-4 py-8">
         <article className="max-w-3xl mx-auto">
-          <header className="mb-8">
-            <h1 className="text-4xl font-serif font-bold mb-4">
-              {post.title}
-            </h1>
-            <div className="flex items-center space-x-4 text-gray-600">
-              <div className="flex items-center space-x-2">
-                <img
-                  src={post.author?.avatar_url || "https://via.placeholder.com/40"}
-                  alt="Author"
-                  className="w-10 h-10 rounded-full"
-                />
-                <span>{post.author?.username || "Anonymous"}</span>
-              </div>
-              <span>•</span>
-              <span>3 min read</span>
-              <span>•</span>
-              <span>{new Date(post.created_at).toLocaleDateString()}</span>
-            </div>
-          </header>
+          <PostHeader 
+            title={post.title}
+            author={post.author}
+            created_at={post.created_at}
+          />
           
-          {post.image_url && (
-            <img
-              src={post.image_url}
-              alt="Article hero"
-              className="w-full aspect-[2/1] object-cover mb-8 rounded-lg"
-            />
-          )}
-          
-          <div className="prose prose-lg max-w-none">
-            {post.content}
-          </div>
+          <PostContent 
+            content={post.content}
+            image_url={post.image_url}
+          />
 
-          <div className="mt-12 border-t pt-8">
-            <h3 className="text-2xl font-serif font-bold mb-6">Comments</h3>
-            
-            <div className="mb-8">
-              <Textarea
-                placeholder="Add a comment..."
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                className="mb-2"
-              />
-              <Button onClick={handleAddComment}>Add Comment</Button>
-            </div>
-
-            <div className="space-y-6">
-              {commentsLoading ? (
-                <div>Loading comments...</div>
-              ) : comments?.map((comment) => (
-                <Comment 
-                  key={comment.id} 
-                  comment={{
-                    id: comment.id,
-                    content: comment.content,
-                    author: comment.author?.username || "Anonymous",
-                    replies: []
-                  }}
-                  postId={id || ""}
-                />
-              ))}
-            </div>
-          </div>
+          <CommentsSection 
+            postId={id || ""}
+            comments={comments || []}
+            isLoading={commentsLoading}
+          />
         </article>
       </main>
     </div>
