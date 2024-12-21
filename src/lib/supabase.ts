@@ -6,7 +6,7 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 export type Profile = {
-  id: string;  // Changed to use 'id' as the primary identifier
+  user_id: string;  // This will store the auth UUID
   username: string;
   avatar_url?: string;
   bio?: string;
