@@ -11,11 +11,12 @@ import { supabase } from "@/lib/supabase";
 const Write = () => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuthAndDraft = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       console.log("Checking auth status:", user);
       
@@ -26,14 +27,103 @@ const Write = () => {
           description: "Please sign in to write a blog post",
         });
         navigate("/signin");
+        return;
+      }
+
+      // Check for existing draft
+      const { data: draft, error: draftError } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('author_id', user.id)
+        .eq('published', false)
+        .single();
+
+      if (draftError && draftError.code !== 'PGRST116') {
+        console.error("Error fetching draft:", draftError);
+        return;
+      }
+
+      if (draft) {
+        console.log("Loading existing draft:", draft);
+        setTitle(draft.title || "");
+        setContent(draft.content || "");
       }
     };
 
-    checkAuth();
+    checkAuthAndDraft();
   }, [navigate, toast]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSaveAsDraft = async () => {
+    setIsLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to save a draft.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Check for existing draft
+      const { data: existingDraft } = await supabase
+        .from('posts')
+        .select('id')
+        .eq('author_id', user.id)
+        .eq('published', false)
+        .single();
+
+      const postData = {
+        title,
+        content,
+        author_id: user.id,
+        published: false,
+        updated_at: new Date().toISOString()
+      };
+
+      let result;
+      if (existingDraft) {
+        // Update existing draft
+        result = await supabase
+          .from('posts')
+          .update(postData)
+          .eq('id', existingDraft.id)
+          .select()
+          .single();
+      } else {
+        // Create new draft
+        result = await supabase
+          .from('posts')
+          .insert([postData])
+          .select()
+          .single();
+      }
+
+      const { error } = result;
+      if (error) throw error;
+
+      console.log("Draft saved successfully");
+      toast({
+        title: "Success!",
+        description: "Your draft has been saved.",
+      });
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save draft. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -46,32 +136,49 @@ const Write = () => {
         return;
       }
 
-      console.log("Creating new post with title:", title);
-      const { data: post, error } = await supabase
+      // Check for existing draft
+      const { data: existingDraft } = await supabase
         .from('posts')
-        .insert([
-          {
-            title,
-            content,
-            author_id: user.id,
-            published: true
-          }
-        ])
-        .select()
+        .select('id')
+        .eq('author_id', user.id)
+        .eq('published', false)
         .single();
 
-      if (error) {
-        console.error("Error creating post:", error);
-        throw error;
+      const postData = {
+        title,
+        content,
+        author_id: user.id,
+        published: true,
+        updated_at: new Date().toISOString()
+      };
+
+      let result;
+      if (existingDraft) {
+        // Update and publish existing draft
+        result = await supabase
+          .from('posts')
+          .update(postData)
+          .eq('id', existingDraft.id)
+          .select()
+          .single();
+      } else {
+        // Create new published post
+        result = await supabase
+          .from('posts')
+          .insert([postData])
+          .select()
+          .single();
       }
 
-      console.log("Post created successfully:", post);
+      const { data: post, error } = result;
+      if (error) throw error;
+
+      console.log("Post published successfully:", post);
       toast({
         title: "Success!",
         description: "Your article has been published.",
       });
 
-      // Navigate to the newly created post
       navigate(`/post/${post.id}`);
     } catch (error) {
       console.error("Error publishing post:", error);
@@ -80,6 +187,8 @@ const Write = () => {
         description: "Failed to publish post. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -95,7 +204,7 @@ const Write = () => {
     <div className="min-h-screen bg-white">
       <Header />
       <main className="container mx-auto px-4 py-8">
-        <form onSubmit={handleSubmit} className="max-w-3xl mx-auto space-y-6">
+        <form onSubmit={handlePublish} className="max-w-3xl mx-auto space-y-6">
           <div>
             <Input
               type="text"
@@ -111,6 +220,7 @@ const Write = () => {
               variant="ghost"
               size="sm"
               onClick={() => handleToolClick("Bold")}
+              type="button"
             >
               <Bold className="h-4 w-4" />
             </Button>
@@ -118,6 +228,7 @@ const Write = () => {
               variant="ghost"
               size="sm"
               onClick={() => handleToolClick("Italic")}
+              type="button"
             >
               <Italic className="h-4 w-4" />
             </Button>
@@ -125,6 +236,7 @@ const Write = () => {
               variant="ghost"
               size="sm"
               onClick={() => handleToolClick("Heading")}
+              type="button"
             >
               <Type className="h-4 w-4" />
             </Button>
@@ -132,6 +244,7 @@ const Write = () => {
               variant="ghost"
               size="sm"
               onClick={() => handleToolClick("List")}
+              type="button"
             >
               <List className="h-4 w-4" />
             </Button>
@@ -139,6 +252,7 @@ const Write = () => {
               variant="ghost"
               size="sm"
               onClick={() => handleToolClick("Link")}
+              type="button"
             >
               <Link className="h-4 w-4" />
             </Button>
@@ -146,6 +260,7 @@ const Write = () => {
               variant="ghost"
               size="sm"
               onClick={() => handleToolClick("Image")}
+              type="button"
             >
               <Image className="h-4 w-4" />
             </Button>
@@ -160,8 +275,21 @@ const Write = () => {
             />
           </div>
           
-          <div className="flex justify-end">
-            <Button type="submit">Publish</Button>
+          <div className="flex justify-end space-x-4">
+            <Button 
+              type="button" 
+              variant="outline"
+              onClick={handleSaveAsDraft}
+              disabled={isLoading}
+            >
+              Save as Draft
+            </Button>
+            <Button 
+              type="submit"
+              disabled={isLoading}
+            >
+              Publish
+            </Button>
           </div>
         </form>
       </main>
