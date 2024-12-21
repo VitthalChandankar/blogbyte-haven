@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Post from "./pages/Post";
 import Write from "./pages/Write";
 import SignIn from "./pages/SignIn";
+import SignUp from "./pages/SignUp";
 import AuthCallback from "./pages/AuthCallback";
 import Profile from "./pages/Profile";
 
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/post/:id" element={<Post />} />
             <Route path="/write" element={<Write />} />
             <Route path="/signin" element={<SignIn />} />
+            <Route path="/signup" element={<SignUp />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/profile" element={<Profile />} />
           </Routes>
