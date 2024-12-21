@@ -33,7 +33,7 @@ const Profile = () => {
       const { data: existingProfile, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('auth_id', userId)  // Changed from user_id to auth_id
+        .eq('id', userId)  // Changed to use 'id' column
         .single();
       
       if (fetchError) {
@@ -45,7 +45,7 @@ const Profile = () => {
             .from('profiles')
             .insert([
               {
-                auth_id: userId,  // Changed from user_id to auth_id
+                id: userId,  // Changed to use 'id'
                 username: 'New User',
                 notifications_enabled: true,
               }
@@ -53,7 +53,10 @@ const Profile = () => {
             .select()
             .single();
             
-          if (createError) throw createError;
+          if (createError) {
+            console.error("Error creating profile:", createError);
+            throw createError;
+          }
           return newProfile;
         }
         throw fetchError;
