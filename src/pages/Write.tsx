@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,11 +14,30 @@ const Write = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log("Checking auth status:", user);
+      
+      if (!user) {
+        console.log("User not authenticated, redirecting to signin");
+        toast({
+          title: "Authentication required",
+          description: "Please sign in to write a blog post",
+        });
+        navigate("/signin");
+      }
+    };
+
+    checkAuth();
+  }, [navigate, toast]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
         toast({
           title: "Error",
           description: "You must be logged in to publish a post.",
@@ -27,28 +46,32 @@ const Write = () => {
         return;
       }
 
+      console.log("Creating new post with title:", title);
       const { data: post, error } = await supabase
         .from('posts')
         .insert([
           {
             title,
             content,
-            author_id: user.user.id,
+            author_id: user.id,
             published: true
           }
         ])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error creating post:", error);
+        throw error;
+      }
 
-      console.log("Post created:", post);
-      
+      console.log("Post created successfully:", post);
       toast({
-        title: "Post published!",
-        description: "Your article has been published successfully.",
+        title: "Success!",
+        description: "Your article has been published.",
       });
 
+      // Navigate to the newly created post
       navigate(`/post/${post.id}`);
     } catch (error) {
       console.error("Error publishing post:", error);
@@ -62,7 +85,6 @@ const Write = () => {
 
   const handleToolClick = (tool: string) => {
     console.log("Tool clicked:", tool);
-    // Here you would implement the actual formatting logic
     toast({
       title: "Feature coming soon",
       description: `${tool} formatting will be available soon.`,
@@ -84,7 +106,6 @@ const Write = () => {
             />
           </div>
 
-          {/* Formatting toolbar */}
           <div className="flex space-x-2 border-b pb-2">
             <Button
               variant="ghost"
