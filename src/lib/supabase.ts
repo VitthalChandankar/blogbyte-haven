@@ -6,12 +6,13 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 export type Profile = {
-  id: string;
+  id?: string;
+  user_id: string;
   username: string;
   avatar_url?: string;
   bio?: string;
   notifications_enabled: boolean;
-  created_at: string;
+  created_at?: string;
 };
 
 export type Post = {

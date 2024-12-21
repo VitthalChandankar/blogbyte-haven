@@ -27,14 +27,39 @@ const Profile = () => {
     queryKey: ['profile', userId],
     queryFn: async () => {
       if (!userId) return null;
-      const { data, error } = await supabase
+      console.log("Fetching profile for user:", userId);
+      
+      // First check if profile exists
+      const { data: existingProfile, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('user_id', userId)
         .single();
       
-      if (error) throw error;
-      return data;
+      if (fetchError) {
+        console.error("Error fetching profile:", fetchError);
+        // If profile doesn't exist, create one
+        if (fetchError.code === 'PGRST116') {
+          console.log("Profile not found, creating new profile");
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert([
+              {
+                user_id: userId,
+                username: 'New User',
+                notifications_enabled: true,
+              }
+            ])
+            .select()
+            .single();
+            
+          if (createError) throw createError;
+          return newProfile;
+        }
+        throw fetchError;
+      }
+      
+      return existingProfile;
     },
     enabled: !!userId
   });
@@ -43,6 +68,7 @@ const Profile = () => {
     queryKey: ['user-posts', userId],
     queryFn: async () => {
       if (!userId) return [];
+      console.log("Fetching posts for user:", userId);
       const { data, error } = await supabase
         .from('posts')
         .select('*')
