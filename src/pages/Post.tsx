@@ -17,24 +17,35 @@ const Post = () => {
     queryKey: ['post', id],
     queryFn: async () => {
       console.log("Fetching post with ID:", id);
-      const { data, error } = await supabase
+      // First get the post
+      const { data: post, error: postError } = await supabase
         .from('posts')
-        .select(`
-          *,
-          profiles (
-            username,
-            avatar_url
-          )
-        `)
+        .select('*')
         .eq('id', id)
         .single();
 
-      if (error) {
-        console.error("Error fetching post:", error);
-        throw error;
+      if (postError) {
+        console.error("Error fetching post:", postError);
+        throw postError;
       }
-      console.log("Fetched post:", data);
-      return data;
+
+      // Then get the author details
+      const { data: author, error: authorError } = await supabase
+        .from('profiles')
+        .select('username, avatar_url')
+        .eq('id', post.author_id)
+        .single();
+
+      if (authorError) {
+        console.error("Error fetching author:", authorError);
+        // Don't throw here, we'll just return the post without author details
+      }
+
+      console.log("Fetched post and author:", { post, author });
+      return {
+        ...post,
+        author: author || { username: 'Anonymous' }
+      };
     }
   });
 
@@ -42,24 +53,39 @@ const Post = () => {
     queryKey: ['comments', id],
     queryFn: async () => {
       console.log("Fetching comments for post:", id);
-      const { data, error } = await supabase
+      // First get the comments
+      const { data: comments, error: commentsError } = await supabase
         .from('comments')
-        .select(`
-          *,
-          profiles (
-            username,
-            avatar_url
-          )
-        `)
+        .select('*')
         .eq('post_id', id)
         .order('created_at', { ascending: true });
 
-      if (error) {
-        console.error("Error fetching comments:", error);
-        throw error;
+      if (commentsError) {
+        console.error("Error fetching comments:", commentsError);
+        throw commentsError;
       }
-      console.log("Fetched comments:", data);
-      return data;
+
+      // If we have comments, get the author details for each
+      if (comments && comments.length > 0) {
+        const commentsWithAuthors = await Promise.all(
+          comments.map(async (comment) => {
+            const { data: author } = await supabase
+              .from('profiles')
+              .select('username, avatar_url')
+              .eq('id', comment.author_id)
+              .single();
+
+            return {
+              ...comment,
+              author: author || { username: 'Anonymous' }
+            };
+          })
+        );
+        console.log("Fetched comments with authors:", commentsWithAuthors);
+        return commentsWithAuthors;
+      }
+
+      return comments || [];
     }
   });
 
@@ -125,11 +151,11 @@ const Post = () => {
             <div className="flex items-center space-x-4 text-gray-600">
               <div className="flex items-center space-x-2">
                 <img
-                  src={post.profiles?.avatar_url || "https://via.placeholder.com/40"}
+                  src={post.author?.avatar_url || "https://via.placeholder.com/40"}
                   alt="Author"
                   className="w-10 h-10 rounded-full"
                 />
-                <span>{post.profiles?.username || "Anonymous"}</span>
+                <span>{post.author?.username || "Anonymous"}</span>
               </div>
               <span>•</span>
               <span>3 min read</span>
@@ -172,7 +198,7 @@ const Post = () => {
                   comment={{
                     id: comment.id,
                     content: comment.content,
-                    author: comment.profiles?.username || "Anonymous",
+                    author: comment.author?.username || "Anonymous",
                     replies: []
                   }}
                   postId={id || ""}
