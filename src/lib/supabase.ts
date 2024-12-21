@@ -7,7 +7,7 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
 
 export type Profile = {
   id?: string;
-  user_id: string;
+  auth_id: string;  // Changed from user_id to auth_id to match database
   username: string;
   avatar_url?: string;
   bio?: string;
