@@ -46,27 +46,47 @@ export const EmailSignUpForm = ({ isLoading, setIsLoading }: EmailSignUpFormProp
   });
 
   const handleSignUp = async (values: FormData) => {
+    console.log("Starting sign up process...");
     setIsLoading(true);
+    
     try {
-      const { error } = await supabase.auth.signUp({
+      console.log("Attempting to sign up with email:", values.email);
+      
+      const { data, error } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
       });
 
-      if (error) throw error;
+      console.log("Sign up response:", { data, error });
 
-      toast({
-        title: "Check your email",
-        description: "We've sent you a verification link to complete your registration.",
-      });
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
+
+      if (data?.user) {
+        toast({
+          title: "Check your email",
+          description: "We've sent you a verification link to complete your registration.",
+        });
+        navigate("/signin");
+      }
     } catch (error) {
       console.error("Error signing up:", error);
+      
+      let errorMessage = "An unexpected error occurred. Please try again.";
+      if (error instanceof Error) {
+        // Check if the error message contains specific Supabase error details
+        if (error.message.includes("email_address_invalid")) {
+          errorMessage = "Please enter a valid email address.";
+        } else if (error.message.includes("password")) {
+          errorMessage = "Please check your password requirements.";
+        }
+      }
+      
       toast({
         title: "Error signing up",
-        description: error instanceof Error ? error.message : "Please try again",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
