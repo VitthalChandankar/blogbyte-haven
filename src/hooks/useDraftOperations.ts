@@ -1,11 +1,11 @@
 import { supabase } from "@/lib/supabase";
-import { Toast } from "@/components/ui/use-toast";
+import { toast as Toast } from "@/components/ui/use-toast";
 
 interface DraftOperationsProps {
   title: string;
   content: string;
   setIsLoading: (loading: boolean) => void;
-  toast: Toast;
+  toast: typeof Toast;
 }
 
 export const useDraftOperations = ({

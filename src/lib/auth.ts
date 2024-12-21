@@ -1,10 +1,10 @@
 import { supabase } from "./supabase";
 import { NavigateFunction } from "react-router-dom";
-import { Toast } from "@/components/ui/use-toast";
+import { toast as Toast } from "@/components/ui/use-toast";
 
 export const checkAuthStatus = async (
   navigate: NavigateFunction,
-  toast: Toast
+  toast: typeof Toast
 ) => {
   const { data: { user }, error } = await supabase.auth.getUser();
   console.log("Checking auth status:", user);

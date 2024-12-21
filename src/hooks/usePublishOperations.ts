@@ -1,12 +1,12 @@
 import { supabase } from "@/lib/supabase";
-import { Toast } from "@/components/ui/use-toast";
+import { toast as Toast } from "@/components/ui/use-toast";
 import { NavigateFunction } from "react-router-dom";
 
 interface PublishOperationsProps {
   title: string;
   content: string;
   setIsLoading: (loading: boolean) => void;
-  toast: Toast;
+  toast: typeof Toast;
   navigate: NavigateFunction;
 }
 
