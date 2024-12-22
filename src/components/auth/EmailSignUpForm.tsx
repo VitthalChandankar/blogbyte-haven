@@ -52,6 +52,16 @@ export const EmailSignUpForm = ({ isLoading, setIsLoading }: EmailSignUpFormProp
     try {
       console.log("Attempting to sign up with email:", values.email);
       
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('email', values.email)
+        .single();
+
+      if (existingUser) {
+        throw new Error("This email is already registered. Please sign in instead.");
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
@@ -84,6 +94,8 @@ export const EmailSignUpForm = ({ isLoading, setIsLoading }: EmailSignUpFormProp
           description: "We've sent you a verification link to complete your registration.",
         });
         navigate("/signin");
+      } else {
+        throw new Error("Failed to create account. Please try again.");
       }
     } catch (error) {
       console.error("Error signing up:", error);
