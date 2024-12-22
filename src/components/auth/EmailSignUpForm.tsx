@@ -57,6 +57,9 @@ export const EmailSignUpForm = ({ isLoading, setIsLoading }: EmailSignUpFormProp
         password: values.password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+            email: values.email,
+          }
         },
       });
 
