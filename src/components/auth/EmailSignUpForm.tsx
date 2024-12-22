@@ -55,13 +55,24 @@ export const EmailSignUpForm = ({ isLoading, setIsLoading }: EmailSignUpFormProp
       const { data, error } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
 
       console.log("Sign up response:", { data, error });
 
       if (error) {
         console.error("Supabase error:", error);
-        throw error;
+        let errorMessage = "An unexpected error occurred. Please try again.";
+        
+        if (error.message.includes("Database error")) {
+          errorMessage = "There was an issue creating your account. Please try again later.";
+        } else if (error.message.includes("User already registered")) {
+          errorMessage = "This email is already registered. Please sign in instead.";
+        }
+        
+        throw new Error(errorMessage);
       }
 
       if (data?.user) {
@@ -76,12 +87,7 @@ export const EmailSignUpForm = ({ isLoading, setIsLoading }: EmailSignUpFormProp
       
       let errorMessage = "An unexpected error occurred. Please try again.";
       if (error instanceof Error) {
-        // Check if the error message contains specific Supabase error details
-        if (error.message.includes("email_address_invalid")) {
-          errorMessage = "Please enter a valid email address.";
-        } else if (error.message.includes("password")) {
-          errorMessage = "Please check your password requirements.";
-        }
+        errorMessage = error.message;
       }
       
       toast({
