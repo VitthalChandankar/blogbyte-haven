@@ -51,16 +51,6 @@ export const EmailSignUpForm = ({ isLoading, setIsLoading }: EmailSignUpFormProp
     
     try {
       console.log("Attempting to sign up with email:", values.email);
-      
-      const { data: existingUser } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('email', values.email)
-        .single();
-
-      if (existingUser) {
-        throw new Error("This email is already registered. Please sign in instead.");
-      }
 
       const { data, error } = await supabase.auth.signUp({
         email: values.email,
