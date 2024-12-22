@@ -1,5 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useRef } from "react";
 
 interface EditorContentProps {
   title: string;
@@ -14,6 +15,49 @@ export const EditorContent = ({
   onTitleChange,
   onContentChange,
 }: EditorContentProps) => {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const insertFormatting = (format: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = content.substring(start, end);
+
+    let newText = content;
+    switch (format) {
+      case "**":
+        newText = content.substring(0, start) + `**${selectedText}**` + content.substring(end);
+        break;
+      case "*":
+        newText = content.substring(0, start) + `*${selectedText}*` + content.substring(end);
+        break;
+      case "#":
+        newText = content.substring(0, start) + `\n# ${selectedText}` + content.substring(end);
+        break;
+      case "-":
+        newText = content.substring(0, start) + `\n- ${selectedText}` + content.substring(end);
+        break;
+      case "[":
+        newText = content.substring(0, start) + `[${selectedText}]()` + content.substring(end);
+        break;
+      default:
+        return;
+    }
+
+    onContentChange(newText);
+  };
+
+  const insertImage = (url: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const imageMarkdown = `\n![Image](${url})\n`;
+    const newText = content + imageMarkdown;
+    onContentChange(newText);
+  };
+
   return (
     <>
       <div>
@@ -27,6 +71,7 @@ export const EditorContent = ({
       </div>
       <div>
         <Textarea
+          ref={textareaRef}
           placeholder="Write your story..."
           value={content}
           onChange={(e) => onContentChange(e.target.value)}

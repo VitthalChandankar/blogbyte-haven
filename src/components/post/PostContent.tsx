@@ -1,3 +1,5 @@
+import ReactMarkdown from 'react-markdown';
+
 interface PostContentProps {
   content: string;
   image_url?: string;
@@ -13,7 +15,7 @@ export const PostContent = ({ content, image_url }: PostContentProps) => (
       />
     )}
     <div className="prose prose-lg max-w-none">
-      {content}
+      <ReactMarkdown>{content}</ReactMarkdown>
     </div>
   </>
 );
