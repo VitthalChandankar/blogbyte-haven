@@ -6,12 +6,14 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 export type Profile = {
-  id: string;  // This matches Supabase's default auth user id column
+  id: string;
   username: string;
   avatar_url?: string;
   bio?: string;
+  occupation?: string;
   notifications_enabled: boolean;
   created_at?: string;
+  updated_at?: string;
 };
 
 export type Post = {

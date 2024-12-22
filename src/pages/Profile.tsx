@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Header } from "@/components/Header";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +13,8 @@ const Profile = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { id: profileId } = useParams(); // For viewing other user profiles
 
   useEffect(() => {
     const checkUser = async () => {
@@ -29,15 +31,16 @@ const Profile = () => {
   }, [navigate]);
 
   const { data: profile, isLoading: profileLoading } = useQuery({
-    queryKey: ['profile', userId],
+    queryKey: ['profile', profileId || userId],
     queryFn: async () => {
-      if (!userId) return null;
-      console.log("Fetching profile for user:", userId);
+      const targetId = profileId || userId;
+      if (!targetId) return null;
+      console.log("Fetching profile for user:", targetId);
       
       const { data: existingProfile, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('id', targetId)
         .single();
       
       if (fetchError) {
@@ -48,7 +51,7 @@ const Profile = () => {
             .from('profiles')
             .insert([
               {
-                id: userId,
+                id: targetId,
                 username: 'New User',
                 notifications_enabled: true,
               }
@@ -67,23 +70,24 @@ const Profile = () => {
       
       return existingProfile;
     },
-    enabled: !!userId
+    enabled: !!(profileId || userId)
   });
 
   const { data: posts, isLoading: postsLoading } = useQuery({
-    queryKey: ['user-posts', userId],
+    queryKey: ['user-posts', profileId || userId],
     queryFn: async () => {
-      if (!userId) return [];
-      console.log("Fetching posts for user:", userId);
+      const targetId = profileId || userId;
+      if (!targetId) return [];
+      console.log("Fetching posts for user:", targetId);
       const { data, error } = await supabase
         .from('posts')
         .select('*')
-        .eq('author_id', userId);
+        .eq('author_id', targetId);
       
       if (error) throw error;
       return data;
     },
-    enabled: !!userId
+    enabled: !!(profileId || userId)
   });
 
   const handleLogout = async () => {
@@ -107,18 +111,30 @@ const Profile = () => {
     }
   };
 
+  const handleProfileUpdate = () => {
+    queryClient.invalidateQueries({ queryKey: ['profile', profileId || userId] });
+  };
+
+  const isOwnProfile = !profileId || profileId === userId;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto space-y-8">
-          <div className="flex justify-end">
-            <Button variant="destructive" onClick={handleLogout}>
-              Log Out
-            </Button>
-          </div>
+          {isOwnProfile && (
+            <div className="flex justify-end">
+              <Button variant="destructive" onClick={handleLogout}>
+                Log Out
+              </Button>
+            </div>
+          )}
           
-          <ProfileHeader profile={profile} />
+          <ProfileHeader 
+            profile={profile} 
+            isOwnProfile={isOwnProfile}
+            onProfileUpdate={handleProfileUpdate}
+          />
           <ProfileMetrics posts={posts} />
           <ProfileContent posts={posts} postsLoading={postsLoading} />
         </div>
